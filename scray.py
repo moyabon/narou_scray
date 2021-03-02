@@ -97,7 +97,7 @@ def file_write():
 	if ret :
 		thonbun=get_main_text(make_bs_object())
         # ファイルを開いてdataを書き込み
-		f = open(ret, "w")
+		f = open(ret.name, "w")
 		f.write(thonbun)
 		f.close()
 
