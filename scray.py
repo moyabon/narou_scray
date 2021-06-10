@@ -1,3 +1,4 @@
+from sys import warnoptions
 from bs4 import BeautifulSoup
 from urllib import request
 import requests
@@ -13,6 +14,7 @@ import webbrowser
 import tkinter.font as tkFont
 import tkinter.messagebox
 
+
 from logging import getLogger, StreamHandler, DEBUG
 logger = getLogger(__name__)
 handler = StreamHandler()
@@ -25,7 +27,7 @@ def judge18():
 	return 'novel18' in text.get()
 
 def make_bs_object():
-	if judge18:
+	if judge18():
 		url=text.get()
 		cookie={'over18':'yes'}
 		headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.88 Safari/537.36 Edg/87.0.664.66"}
@@ -59,7 +61,23 @@ def url_form():
 
 def text_set():
 	soup=make_bs_object()
+	for tag in soup.findAll(["rt","rp"]):
+		tag.decompose()
 	whonbun=soup.find('div',id='novel_honbun').get_text()
+
+	if judge18():
+		wtitle=soup.find('a',class_='margin_l10r20').get_text()
+	else:
+		wtitle=soup.find('a',class_='margin_r20').get_text()
+		
+	wno=soup.find('div',id='novel_no').get_text()
+	wst=soup.find('p',class_='novel_subtitle').get_text()
+	if soup.find('p',class_='chapter_title'):
+		wct=soup.find('p',class_='chapter_title').get_text()
+		tlabel["text"]=wtitle+" "+wct+" "+wno+" "+wst
+	else:
+		tlabel["text"]=wtitle+" "+wno+" "+wst
+
 	if hontext:
 		hontext.delete(1.0,tk.END)
 		hontext.insert(tk.END, whonbun)
@@ -97,7 +115,7 @@ def file_write():
 	if ret :
 		thonbun=get_main_text(make_bs_object())
         # ファイルを開いてdataを書き込み
-		f = open(ret.name, "w")
+		f = open(ret, "w")
 		f.write(thonbun)
 		f.close()
 
@@ -113,39 +131,31 @@ def browser_search_noc():
 def browser_search_mn():
 	webbrowser.open('https://mnlt.syosetu.com/search/search/')
 
-def fontsize_setting():
+def shortcut_des():
 	app = tk.Tk()
-	fontStyle = tkFont.Font(family="メイリオ", size=tfontStyle['size'])
-	labelExample = tk.Label(app, text=tfontStyle['size'], font=fontStyle)
-
-	def increase_label_font():
-		fontsize = tfontStyle['size']
-		labelExample['text'] = fontsize+1
-		tfontStyle.configure(size=fontsize+1)
-		fontStyle.configure(size=fontsize+1)
-
-	def decrease_label_font():
-		fontsize = tfontStyle['size']
-		labelExample['text'] = fontsize-1
-		tfontStyle.configure(size=fontsize-1)
-		fontStyle.configure(size=fontsize-1)
-    
-	buttonExample2 = tk.Button(app, text="Increase", width=30,command=increase_label_font)
-	buttonExample1 = tk.Button(app, text="Decrease", width=30,command=decrease_label_font)
-
-	buttonExample1.pack(side=tk.LEFT)
-	buttonExample2.pack(side=tk.LEFT)
-	labelExample.pack(side=tk.RIGHT)
+	flabel=tk.Label(app,text='ショートカット一覧')
+	flabel.pack()
+	frame_content=tk.Frame(app,pady=5,padx=5,relief=tk.GROOVE,bd=2)
+	clabel=tk.Label(frame_content,text='<Control-0>:フォントサイズ1増加\n<Control-9>:フォントサイズ1減少\n<Control-e>:選択範囲をwebで検索\n<Control-d>前話をスクレイピング:\n<Control-f>:次話をスクレイピング\n')
+	frame_content.pack()
+	clabel.pack()
 	app.mainloop()
 
 
 
+def increase_size_font():
+	tfontStyle.configure(size=tfontStyle['size']+1)
+	
+
+def decrease_size_font():
+	tfontStyle.configure(size=tfontStyle['size']-1)
+
 
 # ウィンドウを作成 --- (*2)
 win = tk.Tk()
+#win.tk.call('tk', 'scaling', 1.5) 
 win.title("小説")
-win.geometry("750x325")
-
+win.geometry("800x540")
 
 
 # 部品を作成 --- (*3)
@@ -175,28 +185,71 @@ browser.add_command(label='ムーンライト',command=browser_search_mn)
 setting_menu = tk.Menu(menubar, tearoff=0)
 menubar.add_cascade(label='設定', menu=setting_menu)
 
-setting_menu.add_command(label='フォントサイズ',command=fontsize_setting)
+setting_menu.add_command(label='ショートカットキー',command=shortcut_des)
+
 
 # テキストボックスを作成
+
 text = tk.Entry(win,width=60)
 text.pack()
-text.insert(tk.END, 'https://novel18.syosetu.com/n1896br/1/')
+text.insert(tk.END, 'https://ncode.syosetu.com/n0632db/15/')
 
-Button = tk.Button(win, text=u'scray',width=10)
+#ボタンを作成
+frame_top = tk.Frame(win,pady=5)
+Button = tk.Button(frame_top, text=u'scray',width=10)
 Button["command"] = text_set
-Button.pack(padx=20, side = 'top')
 
-nButton = tk.Button(win, text=u'previous',width=10)
+
+nButton = tk.Button(frame_top, text=u'previous',width=10)
 nButton["command"] = text_set_previous
-nButton.pack(padx=20, side = 'top')
 
-tButton = tk.Button(win, text=u'next',width=10)
+
+tButton = tk.Button(frame_top, text=u'next',width=10)
 tButton["command"] = text_set_next
-tButton.pack(padx=20, side = 'top')
+
+frame_top.pack(fill=tk.X)
+
+Button.pack(side = tk.LEFT,padx=5)
+nButton.pack(side = tk.LEFT,padx=5)
+tButton.pack(side = tk.LEFT,padx=5)
+
+
+
+tlabel = tk.Label(frame_top, text='')
+tlabel.pack()
 
 tfontStyle = tkFont.Font(family="メイリオ", size=10)
 hontext = ScrolledText(win, width=200, height=100,font=tfontStyle)
 hontext.pack(side='bottom')
+
+#key-bind setting
+def increase_fontsize(event):
+    increase_size_font()
+
+def decrease_fontsize(event):
+    decrease_size_font()
+
+def explore_word(event):
+	ew=text.selection_get()
+	webbrowser.open("https://www.bing.com/search?q="+ew)
+
+def textSet_next(event):
+	text_set_next()
+
+def textSet_previous(event):
+	text_set_previous()
+
+def textSet(event):
+	text_set()
+
+#key-bind
+win.bind('<Control-0>',increase_fontsize)
+win.bind('<Control-9>',decrease_fontsize)
+win.bind('<Control-e>',explore_word)
+win.bind('<Control-d>',textSet_previous)
+win.bind('<Control-f>',textSet_next)
+win.bind('<Return>',textSet)
+
 
 # ウィンドウを動かす
 win.mainloop()
